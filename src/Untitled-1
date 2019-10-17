@@ -1,0 +1,325 @@
+	hostName
+	ip
+	zone
+	environment
+	org
+	productTeam
+	appName
+	businessContact
+	email
+	hostType
+	make
+	model
+	serialNumber
+	consoleInfo
+	osType
+	osVersion
+	kernelVersion
+	unsupportedOs
+	active
+	status
+	frequency
+	dayOfMonth
+	dayOfWeek
+	hourStart
+	minStart
+	duration
+	takSnapshot
+	validation
+	kspliceStatus
+	kspliceReboot
+	lastPatchTime
+	complianceStatus
+	patchingException
+	markedForDecom
+
+
+HOSTNAME
+IP
+ZONE
+ENVIRONMENT
+ORG
+PRODUCTTEAM
+APPNAME
+BUSINESSCONTACT
+EMAIL
+MAKE
+MODEL
+SERIALNUMBER
+HOSTTYPE
+OSTYPE
+OSVERSION
+KERNELVERSION
+UNSUPPORTEDOS
+ACTIVE
+STATUS
+FREQUENCY
+DAYOFMONTH
+DAYOFWEEK
+HOURSTART
+MINSTART
+DURATION
+TAKSNAPSHOT
+VALIDATION
+KSPLICESTATUS
+KSPLICEREBOOT
+LASTPATCHTIME
+COMPLIANCESTATUS
+PATCHINGEXCEPTION
+MARKEDFORDECOM
+
+
+
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+from flask import Blueprint, render_template, abort, request,send_file,make_response
+from jinja2 import TemplateNotFound
+from datetime import datetime
+from pymongo.errors import BulkWriteError
+from flask import jsonify
+from bson.json_util import dumps
+import pymongo
+import json
+
+
+# from flask_httpauth import HTTPBasicAuth
+# auth = HTTPBasicAuth()
+
+Api_Controller = Blueprint('Api_Controller', __name__,
+                           template_folder='templates')
+
+
+# @Api_Controller.route('/api/Inventory')
+# def show(page):
+#    try:
+#        return render_template('pages/%s.html' % page)
+#    except TemplateNotFound:
+#        abort(404)
+
+# @auth.verify_password
+##def verify_password(username, password):
+#   if "user" == username and "password"==password:
+ #   return True
+ #  else:
+ #   return False
+
+#@Api_Controller.route('/api/swagger.json')
+#def swagger_json():
+
+    # Read before use: http://flask.pocoo.org/docs/0.12/api/#flask.send_file
+
+ #   return send_file('controllers/swagger.yml')
+
+
+def get_timestamp():
+    return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+
+def DBConnection():
+    try:
+        myclient = pymongo.MongoClient('mongodb://dgphxmonsvdb001.phx.gapinc.dev:27017/')
+        mydb = myclient['patchit']
+        mycol = mydb['Asset_Inventory']
+        return mycol
+    except pymongo.errors.ConnectionFailure as e:
+        print ('Could not connect to server: %s', e)
+
+
+# Create a handler for our read (GET) Inventory
+# @auth.login_required
+
+@Api_Controller.route('/api/Inventory', methods=['GET'])
+def read():
+    """
+    This function responds to a request for /api/Inventory
+    with the complete lists of Inventory
+
+    :return:        sorted list of Inventory
+    """
+
+    # Create the list of Inventory from our data
+    # return jsonify(INVENTORY)
+
+    try:
+        mycol = DBConnection()
+        task = dumps(mycol.find())
+        res = json.dumps(task)
+        res1=json.loads(res)
+        response=make_response(res1,200)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+    except BulkWriteError as e:
+        task = {'status': 'Someting went wrong in post data %s' % e}
+        return jsonify(task)
+
+
+# @auth.login_required
+
+@Api_Controller.route('/api/Inventory/<host_id>', methods=['GET'])
+def read_one(host_id):
+    myquery = {'_id': int(host_id)}
+    mycol = DBConnection()
+    mydoc = mycol.find(myquery)
+    task = dumps(mydoc)
+    res = json.dumps(task)
+    res1=json.loads(res)
+    if len(task) == 0:
+        abort(404)
+    response=make_response(res1,200)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
+@Api_Controller.route('/api/active/<active>', methods=['GET'])
+def read_active(active):
+    myquery = {'active': active}
+    mycol = DBConnection()
+    mydoc = mycol.find(myquery)
+    task = dumps(mydoc)
+    res = json.dumps(task)
+    res1=json.loads(res)
+    if len(task) == 0:
+        abort(404)
+    response=make_response(res1,200)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    return response
+
+@Api_Controller.route('/api/login', methods=['POST'])
+def login():
+    try:
+        username = request.get_json()['username']
+        password =  request.get_json()['password']
+        print (username)
+        print (password)
+        if username == "admin" and  password == "admin":
+            task = {'status': 'Success'}
+            res = json.dumps(task)
+            res1=json.loads(res)
+            response=make_response(res1,200)
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response
+        else:
+            task = {'status': 'Failed'}
+            res = json.dumps(task)
+            res1=json.loads(res)
+            response=make_response(res1,200)
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response
+    except BulkWriteError as e:
+        task = {'status': 'Someting went wrong in post data %s' % e}
+        abort(404)
+        return jsonify(task)
+
+# @auth.login_required
+
+@Api_Controller.route('/api/post', methods=['POST'])
+def create():
+    try:
+        mycol = DBConnection()
+        #count = mycol.count()
+        #if count == 0:
+        print(request.get_json()) 
+        mylist = [{#"_id":1,
+            "hostName": request.get_json()['hostName'],
+            "ip": request.get_json()['ip'],
+            "zone": request.get_json()['zone'],
+            "environment": request.get_json()['environment'],
+            "org": request.get_json()['org'], 
+            "owner": {  
+                "productTeam": request.get_json()['productTeam'], 
+                "appName": request.get_json()['appName'],
+                "businessContact": request.get_json()['businessContact'],
+                "email": request.get_json()['email'] 
+            },
+            "Hardware": {
+                "make": request.get_json()['make'],
+                "model": requet.get_json()['model'],
+                "serialNumber": requet.get_json()['serialNumber']
+            },
+            "os": {
+                "osType": request.get_json()['osType'], 
+                "osVersion": request.get_json()['osVersion'],
+                "kernelVersion": request.get_json()['kernelVersion'] 
+            },
+            "active": request.get_json()['active'],
+            "status": request.get_json()['status'], 
+            "outageWindow": {
+                "frequency": request.get_json()['frequency'], 
+                "dayOfMonth": request.get_json()['dayOfMonth'], 
+                "dayOfWeek": request.get_json()['dayOfWeek'], 
+                "hourStart": request.get_json()['hourStart'], 
+                "minStart": request.get_json()['minStart'], 
+                "duration": request.get_json()['duration'] 
+            },
+            "vcenter": {
+                "reboot": request.get_json()['reboot'], 
+                "takeSnapshot": request.get_json()['takeSnapshot'],
+                "validation": request.get_json()['validation'] 
+            },
+            "ksplice": {
+                "kspliceStatus": request.get_json()['kspliceStatus'], 
+                "kspliceReboot": request.get_json()['kspliceReboot'] 
+            },
+            "lastPatchTime": request.get_json()['lastPatchTime'],
+            "complianceStatus": request.get_json()['complianceStatus'],
+            "patchingException": request.get_json()['patchingException'],
+            "markedForDecom": request.get_json()['markedForDecom']
+            
+            #"updateTime": request.get_json()['updateTime'], 
+            #"createTime": request.get_json()['createTime'],             
+            #"lastPatchTime": request.get_json()['lastPatchTime'], 
+        }]
+
+    
+        print(mylist)
+        x = mycol.insert_many(mylist)
+        print(x)
+        task = {'status': 'Sucessfully inserted record'}
+        res = json.dumps(task)
+        res1=json.loads(res)
+        response=make_response(res1,200)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+    except BulkWriteError as e:
+        task = {'status': 'Someting went wrong in post data %s' % e}
+        abort(404)
+        return jsonify(task)
+
+# @auth.login_required
+@Api_Controller.route('/api/upload', methods=['POST'])
+def upload_file():
+   print (request.files)
+   # checking if the file is present or not.
+   if 'file' not in request.files:
+     return "No file found"
+   file = request.files['file']
+   file.save("static/inventory.csv")
+   task = {'status': 'Sucessfully updated record'}
+   return jsonify(task)
+
+
+@Api_Controller.route('/api/Inventory/<host_id>', methods=['PUT'])
+def update(host_id):
+    myquery = {'_id': int(host_id)}
+    newValues = {"$set": { "hostname": request.json.get('hostname'),"Ip": request.json.get('Ip')}} 
+    mycol = DBConnection()
+    try:
+        mycol.update_one(myquery,newValues)
+        task = {'status': 'Sucessfully updated record'}
+        return jsonify(task)
+    except Exception as e:
+     task = {'status': 'Someting went wrong in post data %s' % e}
+     abort(404)
+     return jsonify(task)
+
+@Api_Controller.route('/api/Inventory/<host_id>', methods=['DELETE'])
+def delete(host_id):
+    myquery = {'_id': int(host_id)}
+    mycol = DBConnection()
+    try:
+        mycol.delete_one(myquery)
+        task = {'status': 'Sucessfully deleted record'}
+        return jsonify(task)
+    except Exception as e:
+     task = {'status': 'Someting went wrong in post data %s' % e}
+     abort(404)
+     return jsonify(task)
