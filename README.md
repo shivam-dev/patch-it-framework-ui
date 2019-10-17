@@ -70,4 +70,4 @@ This section has moved here: https://facebook.github.io/create-react-app/docs/tr
 
 ### 'to run docker '
  docker build -t patch-it-frontend-ui .
- docker run -itd --name patch-it-web -p 3000:3000  --link patch-it-framework  --net flask_demo_default  patch-it-frontend-ui
+ docker run -itd --name patch-it-web -p 3000:3000  --link patch-it-framework  --net patch-it_default  patch-it-frontend-ui
